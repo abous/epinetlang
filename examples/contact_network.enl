@@ -1,0 +1,89 @@
+// Réseau de contacts avec structure communautaire
+network ContactNetwork(int individuals = 1000, int communities = 10, float mixing = 0.1) {
+    // Créer un réseau avec structure communautaire
+    Graph network = create_community_network(individuals, communities, mixing);
+    
+    // Caractéristiques du réseau
+    int nodes = network.nodes();
+    int edges = network.edges();
+    float clustering = network.clustering_coefficient();
+    float avg_path_length = network.average_path_length();
+    
+    print("Réseau créé:");
+    print("  Nœuds: " + nodes);
+    print("  Arêtes: " + edges);
+    print("  Coefficient de clustering: " + clustering);
+    print("  Longueur de chemin moyenne: " + avg_path_length);
+    
+    // Distributions de degré
+    Matrix degree_dist = network.degree_distribution();
+    
+    return network;
+}
+
+// Modèle SEIR avec contacts
+model SEIRContact(float beta = 0.4, float sigma = 0.2, float gamma = 0.1, 
+                  float mu = 0.001, float birth_rate = 0.001) {
+    // États: S, E, I, R
+    float N = 1000;
+    float S = N - 1;
+    float E = 0;
+    float I = 1;
+    float R = 0;
+    
+    // Équations différentielles
+    float dS = birth_rate * N - beta * S * I / N - mu * S;
+    float dE = beta * S * I / N - sigma * E - mu * E;
+    float dI = sigma * E - gamma * I - mu * I;
+    float dR = gamma * I - mu * R;
+    
+    // Calculer R0
+    float r0 = beta * sigma / ((sigma + mu) * (gamma + mu));
+    
+    // Matrice de nouvelle génération
+    Matrix G = [[0, beta],
+                [sigma/(sigma+mu), 0]];
+    
+    return {
+        "states": [S, E, I, R],
+        "derivatives": [dS, dE, dI, dR],
+        "R0": r0,
+        "next_generation": G
+    };
+}
+
+// Charger des données réelles de contacts
+data ContactData = CSV("data/contact_patterns.csv", delimiter=",", header=1);
+
+analysis AnalyzeContactPatterns(Data contact_data, Network network) {
+    // Analyser les données de contact
+    Matrix age_groups = contact_data.aggregate("age_group");
+    Matrix contact_matrix = contact_data.aggregate("contacts");
+    
+    // Ajuster le modèle aux données
+    model = SEIRContact();
+    fit to contact_data;
+    
+    // Analyser l'impact de la distanciation sociale
+    float[] distancing_levels = [0.1, 0.3, 0.5, 0.7];
+    Matrix[] results;
+    
+    for (float level in distancing_levels) {
+        model.beta = model.beta * (1 - level);
+        Matrix simulation = model.simulate(100);
+        results.append(simulation);
+    }
+    
+    // Calculer R0 pour chaque niveau
+    float[] r0_values;
+    for (float level in distancing_levels) {
+        float r0 = compute_R0(model);
+        r0_values.append(r0);
+    }
+    
+    return {
+        "contact_matrix": contact_matrix,
+        "simulations": results,
+        "R0_values": r0_values
+    };
+}

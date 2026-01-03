@@ -1,0 +1,118 @@
+// Réseau spatial pour modélisation épidémiologique géographique
+network SpatialNetwork(int locations = 50, float connectivity = 0.2) {
+    // Créer un réseau spatial
+    Graph network = create_spatial_network(locations, connectivity);
+    
+    // Ajouter des populations aux nœuds
+    int[] populations;
+    for (int i = 0; i < locations; i++) {
+        // Population aléatoire entre 1000 et 100000
+        int pop = 1000 + random() % 99000;
+        populations.append(pop);
+        network.set_node_attribute(i, "population", pop);
+    }
+    
+    // Matrice de mobilité
+    Matrix mobility = create_gravity_model(populations, network);
+    
+    return {
+        "network": network,
+        "populations": populations,
+        "mobility": mobility
+    };
+}
+
+// Modèle métapopulation SIR
+model MetapopulationSIR(float beta = 0.3, float gamma = 0.1, float mobility_rate = 0.01) {
+    // États pour chaque localisation
+    int locations = 50;
+    Matrix S = zeros(locations);
+    Matrix I = zeros(locations);
+    Matrix R = zeros(locations);
+    
+    // Initialiser avec quelques cas infectés
+    for (int i = 0; i < locations; i++) {
+        S[i] = 1000 - (i == 0 ? 10 : 0);
+        I[i] = (i == 0 ? 10 : 0);
+    }
+    
+    // Matrice de mobilité
+    Matrix mobility = load_mobility_matrix();
+    
+    // Équations différentielles
+    Matrix dS = zeros(locations);
+    Matrix dI = zeros(locations);
+    Matrix dR = zeros(locations);
+    
+    for (int i = 0; i < locations; i++) {
+        // Transmission locale
+        float force_of_infection = beta * I[i] / (S[i] + I[i] + R[i]);
+        dS[i] = -force_of_infection * S[i];
+        dI[i] = force_of_infection * S[i] - gamma * I[i];
+        dR[i] = gamma * I[i];
+        
+        // Mobilité entre localisations
+        for (int j = 0; j < locations; j++) {
+            if (i != j) {
+                dS[i] = dS[i] + mobility_rate * mobility[j][i] * S[j] 
+                       - mobility_rate * mobility[i][j] * S[i];
+                dI[i] = dI[i] + mobility_rate * mobility[j][i] * I[j] 
+                       - mobility_rate * mobility[i][j] * I[i];
+                dR[i] = dR[i] + mobility_rate * mobility[j][i] * R[j] 
+                       - mobility_rate * mobility[i][j] * R[i];
+            }
+        }
+    }
+    
+    // Calculer R0 avec mobilité
+    compute R0;
+    
+    return {
+        "states": [S, I, R],
+        "derivatives": [dS, dI, dR]
+    };
+}
+
+// Charger des données spatiales réelles
+data SpatialData = JSON("data/spatial_locations.geojson");
+data MobilityData = CSV("data/mobility_flows.csv", delimiter=",");
+
+analysis AnalyzeSpatialSpread(Model model, Data spatial_data, Data mobility_data) {
+    // Préparation des données
+    Matrix locations = spatial_data.filter("type == 'city'");
+    Matrix flows = mobility_data.aggregate("daily_flows");
+    
+    // Ajuster le modèle aux données de mobilité
+    model.mobility_matrix = flows;
+    fit to spatial_data;
+    
+    // Simulation de la propagation spatiale
+    Matrix spread_simulation = model.simulate(200);
+    
+    // Identifier les points chauds
+    Matrix hotspots = detect_hotspots(spread_simulation);
+    
+    // Analyser l'efficacité des interventions spatiales
+    Matrix interventions = {
+        "lockdown": 0.8,
+        "travel_restrictions": 0.6,
+        "local_containment": 0.4
+    };
+    
+    Matrix intervention_results;
+    for (string intervention in interventions.keys()) {
+        float effectiveness = interventions[intervention];
+        model.mobility_rate = model.mobility_rate * (1 - effectiveness);
+        Matrix result = model.simulate(100);
+        intervention_results[intervention] = result;
+    }
+    
+    // Prévision à 30 jours
+    forecast 30;
+    
+    return {
+        "spread_simulation": spread_simulation,
+        "hotspots": hotspots,
+        "intervention_analysis": intervention_results
+    };
+}

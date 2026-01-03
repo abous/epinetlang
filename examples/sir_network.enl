@@ -1,0 +1,84 @@
+// Modèle SIR sur réseau
+network SIRNetwork(int nodes = 100, float beta = 0.3, float gamma = 0.1) {
+    // Créer un réseau aléatoire
+    Graph network = create_random_network(nodes, 0.1);
+    
+    // Initialiser les états
+    Matrix states = zeros(nodes, 3);
+    for (int i = 0; i < nodes; i++) {
+        states[i][0] = 1.0;  // Susceptible
+    }
+    
+    // Infecter quelques nœuds
+    states[0][1] = 1.0;  // Infecté
+    
+    // Paramètres du modèle
+    float recovery_rate = gamma;
+    float infection_rate = beta;
+    
+    // Calculer R0
+    compute R0;
+    
+    return network;
+}
+
+model SIRModel(float beta = 0.3, float gamma = 0.1, int population = 1000) {
+    // États: S, I, R
+    float S = population - 1;
+    float I = 1;
+    float R = 0;
+    
+    // Équations différentielles
+    float dS = -beta * S * I / population;
+    float dI = beta * S * I / population - gamma * I;
+    float dR = gamma * I;
+    
+    // Matrice jacobienne pour l'analyse de stabilité
+    Matrix J = [[-beta*I/population, -beta*S/population, 0],
+                [beta*I/population, beta*S/population - gamma, 0],
+                [0, gamma, 0]];
+    
+    // Calculer R0
+    compute R0;
+    
+    // Analyse de sensibilité
+    sensitivity("beta");
+    sensitivity("gamma");
+    
+    return {
+        "S": S,
+        "I": I,
+        "R": R,
+        "dS": dS,
+        "dI": dI,
+        "dR": dR,
+        "jacobian": J
+    };
+}
+
+analysis AnalyzeSIR(Network network, Model model) {
+    // Simuler le modèle
+    Matrix results = model.simulate(100);
+    
+    // Calculer R0
+    float r0 = compute_R0(model);
+    print("R0 = " + r0);
+    
+    // Analyse de sensibilité
+    Matrix sens_beta = sensitivity(model, "beta");
+    Matrix sens_gamma = sensitivity(model, "gamma");
+    
+    // Ajuster le modèle aux données observées
+    data observed = CSV("data/observed_cases.csv", delimiter=",", header=1);
+    fit to observed;
+    
+    // Prévision
+    forecast 30;
+    
+    return {
+        "results": results,
+        "R0": r0,
+        "sensitivity_beta": sens_beta,
+        "sensitivity_gamma": sens_gamma
+    };
+}

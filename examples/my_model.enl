@@ -1,0 +1,14 @@
+// examples/my_model.enl
+model MyEpidemicModel(float beta = 0.3, float gamma = 0.1) {
+    float S = 999;
+    float I = 1;
+    float R = 0;
+    
+    float dS = -beta * S * I / 1000;
+    float dI = beta * S * I / 1000 - gamma * I;
+    float dR = gamma * I;
+    
+    compute R0;
+    
+    return { "S": S, "I": I, "R": R };
+}
