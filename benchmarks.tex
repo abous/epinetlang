@@ -1,0 +1,135 @@
+% Benchmarks EpiNetLang — 08/11/2026 14:25 — Python 3.13.18, NumPy 2.5.3, Linux x86_64, x86_64, g++ oui
+
+% Nécessite \usepackage{booktabs}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Compilation : taille des modèles et coût de la chaîne}
+\label{tab:bench-b1}
+\begin{tabular}{lrrrrrrrrrrrr}
+\toprule
+Modèle & Comp. & Trans. & Interv. & Lignes .epi & Analyse (ms) & IR brute & IR -O1 & IR -O2 & IR -O3 & Sous-expr. communes & Génération 4 cibles (ms) & Lignes Python \\
+\midrule
+covid\_cameroon & 6 & 6 & 4 & 40 & 1.235 & 28 & 26 & 26 & 23 & 0 & 4.081 & 120 \\
+network\_model & 3 & 2 & 1 & 30 & 0.6415 & 11 & 10 & 10 & 10 & 0 & 1.78 & 90 \\
+seir\_model & 4 & 8 & 0 & 31 & 0.8239 & 11 & 11 & 11 & 10 & 0 & 1.923 & 98 \\
+sir\_model & 3 & 2 & 0 & 22 & 0.4743 & 4 & 4 & 4 & 4 & 0 & 1.027 & 84 \\
+hiv\_base & 9 & 18 & 0 & 58 & 2.425 & 66 & 66 & 45 & 38 & 21 & 6.781 & 147 \\
+hiv\_tarv & 11 & 28 & 2 & 79 & 3.528 & 106 & 105 & 78 & 67 & 27 & 15.32 & 192 \\
+hiv\_prevention & 13 & 34 & 4 & 99 & 4.406 & 164 & 162 & 107 & 91 & 55 & 15.68 & 229 \\
+hiv\_reseau & 6 & 7 & 1 & 48 & 1.266 & 27 & 27 & 27 & 25 & 0 & 4.033 & 115 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize IR : nombre d'instructions à trois adresses ; -O3 spécialise les paramètres.
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Exécution (RK4) : interpréteur, code compilé, précision et mémoire}
+\label{tab:bench-b2}
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+Modèle & Pas & Interprété (ms) & Compilé Python (ms) & Accélération & C++ (ms) & Écart compilé/interp. & Écart C++/Python & Écart float32/float64 & Mémoire f64 (Mo) & Mémoire f32 (Mo) \\
+\midrule
+covid\_cameroon & 2160 & 111 & 44.63 & ×2.5 & 2.193 & 1.69e-15 & 1.27e-06 & 8.96e-06 & 0.1444 & 0.12 \\
+network\_model & 300 & 12.9 & 6 & ×2.1 & 1.695 & 0 & 1.01e-06 & 6.19e-07 & 0.06589 & 0.05815 \\
+seir\_model & 1460 & 85.15 & 36.98 & ×2.3 & 1.735 & 6.50e-16 & 4.27e-07 & 4.16e-06 & 0.08573 & 0.07417 \\
+sir\_model & 1600 & 72.93 & 34.05 & ×2.1 & 2.816 & 0 & 6.92e-07 & 1.19e-06 & 0.3557 & 0.3187 \\
+hiv\_base & 1200 & 221 & 62.67 & ×3.5 & 3.397 & 4.44e-16 & 1.83e-06 & 1.11e-06 & 0.1878 & 0.1461 \\
+hiv\_tarv & 1200 & 293 & 81.69 & ×3.6 & 3.534 & 5.05e-16 & 3.01e-06 & 1.19e-06 & 0.206 & 0.1553 \\
+hiv\_prevention & 1200 & 341 & 72.03 & ×4.7 & 4.987 & 5.05e-16 & 4.22e-06 & 1.21e-06 & 0.2242 & 0.1645 \\
+hiv\_reseau & 400 & 23.72 & 9.161 & ×2.6 & 1.867 & 3.74e-16 & 7.01e-07 & 5.42e-07 & 0.02088 & 0.01676 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Temps médians ; C++ : exécution du binaire -O2 (écriture CSV comprise). Écarts : erreur relative maximale sur la trajectoire (état final pour C++).
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Nombre de reproduction : matrice de nouvelle génération vs forme fermée}
+\label{tab:bench-b3}
+\begin{tabular}{lrrrrr}
+\toprule
+Modèle & Grandeur & NGM (numérique) & Forme fermée & Erreur relative & Temps NGM (ms) \\
+\midrule
+covid\_cameroon & R0 & 3.277 & 3.277 & 1.00e-10 & 0.2432 \\
+covid\_cameroon & Rc(18) & 1.475 & 1.475 & 1.00e-10 & — \\
+covid\_cameroon & Rc(75) & 2.458 & 2.458 & 1.00e-10 & — \\
+covid\_cameroon & Rc(120) & 2.458 & 2.458 & 1.00e-10 & — \\
+covid\_cameroon & Rc(300) & 3.277 & 3.277 & 1.00e-10 & — \\
+network\_model & R0 & 3 & 3 & 1.00e-10 & 0.05583 \\
+network\_model & Rc(30) & 1.5 & 1.5 & 1.00e-10 & — \\
+seir\_model & R0 & 3.498 & 3.498 & 1.00e-10 & 0.1153 \\
+sir\_model & R0 & 3 & 3 & 0 & 0.06614 \\
+hiv\_base & R0 & 2.667 & 2.667 & 2.65e-08 & 0.5851 \\
+hiv\_tarv & R0 & 2.667 & 2.667 & 2.65e-08 & 0.8351 \\
+hiv\_tarv & Rc(2004) & 2.213 & 2.213 & 2.65e-08 & — \\
+hiv\_tarv & Rc(2016) & 1.495 & 1.495 & 2.65e-08 & — \\
+hiv\_prevention & R0 & 2.667 & 2.667 & 2.65e-08 & 1.123 \\
+hiv\_prevention & Rc(2004) & 2.213 & 2.213 & 2.65e-08 & — \\
+hiv\_prevention & Rc(2008) & 2.213 & 2.213 & 2.65e-08 & — \\
+hiv\_prevention & Rc(2016) & 1.495 & 1.495 & 2.65e-08 & — \\
+hiv\_prevention & Rc(2019) & 0.9873 & 0.9873 & 2.54e-08 & — \\
+hiv\_reseau & R0 & 1.32 & 1.32 & 1.00e-10 & 0.185 \\
+hiv\_reseau & Rc(15) & 0.8124 & 0.8124 & 1.00e-10 & — \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Rc(t) : interventions actives à la date t ; DFE = équilibre sans maladie (contrôlé pour les modèles VIH, ce qui capte l'effet de la PrEP).
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{VIH-SIDA : prévalence chez les 15-49 ans et décès selon le scénario}
+\label{tab:bench-b4}
+\begin{tabular}{lrrrrrrrrrrrr}
+\toprule
+Scénario & Prév. 1990 (\%) & Prév. 2000 (\%) & Prév. 2005 (\%) & Prév. 2010 (\%) & Prév. 2020 (\%) & Prév. 2030 (\%) & Prév. 2040 (\%) & Prév. H 2005 (\%) & Prév. L 2005 (\%) & Décès SIDA cumulés 2040 & Décès évités vs base & Enfants infectés (stock 2040) \\
+\midrule
+hiv\_base & 0.9814 & 4.062 & 5.092 & 5.4 & 4.855 & 4.086 & 3.629 & 64.02 & 4.32 & 1.72e+06 & — & — \\
+hiv\_tarv & 0.9814 & 4.062 & 5.096 & 5.322 & 4.478 & 3.192 & 2.345 & 63.93 & 4.32 & 994 412 & 725 459 & — \\
+hiv\_prevention & 0.9814 & 4.062 & 5.096 & 5.322 & 4.473 & 3.03 & 2.029 & 63.93 & 4.32 & 984 308 & 735 563 & 16 463 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Valeurs illustratives (paramètres non calibrés) : la table montre ce que le langage permet de comparer, pas une projection pour le Cameroun.
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Simulation sur réseau vs approximation de champ moyen}
+\label{tab:bench-b5}
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+Modèle & Nœuds & ⟨k⟩ & ⟨k²⟩ & R0 champ moyen & R0 réseau (approx.) & Atteints, champ moyen (\%) & Atteints, réseau (\%) & IC 90 \% réseau & Temps / réalisation (ms) & Graphe (Mo) \\
+\midrule
+network\_model & 2000 & 5.991 & 97.19 & 3 & 7.611 & 85.73 & 71.5 & [66.6 ; 76.2] & 79.95 & 0.05334 \\
+hiv\_reseau & 5000 & 3.998 & 51.13 & 1.32 & 3.89 & 6.687 & 20.61 & [16.5 ; 24.5] & 376 & 0.09534 \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize « Atteints » : part des nœuds sortis de S à la fin de la simulation. R0 réseau : beta Φ (⟨k²⟩ − ⟨k⟩)/⟨k⟩ (graphe de configuration, approximation linéaire).
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Stratégies d'adaptation : profil « minimal » (256 Mo, 1 cœur)}
+\label{tab:bench-b6}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Modèle & Méthode & Précision & dt & Enregistrement & Mémoire estimée (Mo) & Temps (ms) & Contrôle précision & Adaptations \\
+\midrule
+covid\_cameroon & rk4 & float64 & 0.25 & 1/4 & 0.08344 & 55.61 & OK & population 2.8e+07 trop grande pour float32  \\
+network\_model & network & float32 & 0.5 & 1/1 & 0.1218 & 72.59 & OK & simple précision (float32)  \\
+seir\_model & rk4 & float32 & 0.25 & 1/4 & 0.04541 & 41.29 & OK & simple précision (float32)  \\
+sir\_model & rk4 & float32 & 0.1 & 1/1 & 0.1897 & 35.18 & OK & simple précision (float32)  \\
+hiv\_base & rk4 & float64 & 0.05 & 1/2 & 0.1073 & 57.72 & OK & population 1e+07 trop grande pour float32  \\
+hiv\_tarv & rk4 & float64 & 0.05 & 1/2 & 0.1172 & 75.71 & OK & population 1e+07 trop grande pour float32  \\
+hiv\_prevention & rk4 & float64 & 0.05 & 1/2 & 0.1269 & 96.38 & OK & population 1e+07 trop grande pour float32  \\
+hiv\_reseau & network & float32 & 0.1 & 1/5 & 0.1877 & 372 & OK & simple précision (float32)  \\
+\bottomrule
+\end{tabular}
+\end{table}
