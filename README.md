@@ -12,7 +12,7 @@ Ce système complet implémente un langage de modélisation de réseaux épidém
 9. **Exemples complets** de modèles épidémiologiques
 10. **Importation de données** depuis CSV, JSON, SQL
 
-Le système supporte les fonctionnalités demandées :
+Le système supporte les fonctionnalités :
 - Modélisation de réseaux complexes
 - Calcul automatique de R0
 - Analyse de sensibilité
